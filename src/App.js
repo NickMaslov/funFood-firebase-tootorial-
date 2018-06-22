@@ -8,14 +8,33 @@ class App extends Component {
     this.state = {
       currentItem: '',
       username: '',
+      items: [],
     };
     this.handleChange = this.handleChange.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
   }
 
+  componentDidMount() {
+    const itemsRef = firebase.database().ref('items');
+    itemsRef.on('value', snapshot => {
+      let items = snapshot.val();
+      let newState = [];
+      for (let item in items) {
+        newState.push({
+          id: item,
+          title: items[item].title,
+          user: items[item].user,
+        });
+      }
+      this.setState({
+        items: newState,
+      });
+    });
+  }
+
   handleChange(e) {
     this.setState({
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   }
 
@@ -24,13 +43,18 @@ class App extends Component {
     const itemsRef = firebase.database().ref('items');
     const item = {
       title: this.state.currentItem,
-      user: this.state.username
-    }
+      user: this.state.username,
+    };
     itemsRef.push(item);
     this.setState({
       currentItem: '',
-      username: ''
+      username: '',
     });
+  }
+
+  removeItem(itemId) {
+    const itemRef = firebase.database().ref(`/items/${itemId}`);
+    itemRef.remove();
   }
 
   render() {
@@ -43,7 +67,7 @@ class App extends Component {
         </header>
         <div className="container">
           <section className="add-item">
-            <form onSubmit={this.handleSubmit} >
+            <form onSubmit={this.handleSubmit}>
               <input
                 type="text"
                 name="username"
@@ -64,6 +88,25 @@ class App extends Component {
           <section className="display-item">
             <div className="wrapper">
               <ul />
+            </div>
+          </section>
+          <section className="display-item">
+            <div className="wrapper">
+              <ul>
+                {this.state.items.map(item => {
+                  return (
+                    <li key={item.id}>
+                      <h3>{item.title}</h3>
+                      <p>
+                        brought by: {item.user}
+                        <button onClick={() => this.removeItem(item.id)}>
+                          Remove Item
+                        </button>
+                      </p>
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
           </section>
         </div>
